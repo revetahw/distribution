@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
+	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
@@ -418,6 +419,11 @@ func (m *Multi) Complete(parts []Part) error {
 			path:    m.Key,
 			params:  params,
 			payload: bytes.NewReader(data),
+		}
+		if m.Bucket.Region.Name == "generic" {
+			headers := make(http.Header)
+			headers.Add("Content-Length", strconv.FormatInt(int64(len(data)), 10))
+			req.headers = headers
 		}
 		err := m.Bucket.S3.query(req, nil)
 		if shouldRetry(err) && attempt.HasNext() {

@@ -850,7 +850,15 @@ func (b *Bucket) UploadSignedURL(name, method, content_type string, expires time
 	signature := base64.StdEncoding.EncodeToString([]byte(macsum))
 	signature = strings.TrimSpace(signature)
 
-	signedurl, err := url.Parse("https://" + b.Name + ".s3.amazonaws.com/")
+	var signedurl *url.URL
+	var err error
+	if b.Region.S3Endpoint != "" {
+		signedurl, err = url.Parse(b.Region.S3Endpoint)
+		name = b.Name + "/" + name
+	} else {
+		signedurl, err = url.Parse("https://" + b.Name + ".s3.amazonaws.com/")
+	}
+
 	if err != nil {
 		log.Println("ERROR sining url for S3 upload", err)
 		return ""
@@ -1103,7 +1111,9 @@ func (s3 *S3) setupHttpRequest(req *request) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	u.Opaque = fmt.Sprintf("//%s%s", u.Host, partiallyEscapedPath(u.Path))
+	if s3.Region.Name != "generic" {
+		u.Opaque = fmt.Sprintf("//%s%s", u.Host, partiallyEscapedPath(u.Path))
+	}
 
 	hreq := http.Request{
 		URL:        u,
